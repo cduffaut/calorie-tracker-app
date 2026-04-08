@@ -70,14 +70,48 @@ func GetEntryById(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	defer cancel
+	defer cancel()
 
 	fmt.Println(entry)
 	c.JSON(http.StatusOK, entry)
 }
 
 func UpdateEntry(c *gin.Context) {
+	entryID := c.Params.ByName("id")
+	docID, _ := primitive.ObjectIDFromHex(entryID)
 
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+	var entry models.Entry
+
+	if err := c.BindJSON(&entry); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+
+	validationErr := validate.Struct(entry)
+	validationErr != nil {
+		c.JSON(http.StatusInternalServerError, gim.H{"error": validationErr.Error()})
+		fmt.Println(validationErr)
+		return
+	}
+
+	result, err := entryCollection.ReplaceOne(
+		ctx,
+		bson.M{"_id": docID},
+		bson.M{
+			"product_name": entry.ProductName,
+			"calories_per_100g": entry.CaloriesPer100g,
+			"weight_grams": entry.WeightGrams,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+	defer cancel()
+	c.JSON(http.StatusOK, result.ModifiedCount)
 }
 
 // Special

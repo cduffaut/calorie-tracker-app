@@ -116,8 +116,34 @@ func UpdateEntry(c *gin.Context) {
 
 // Special
 func UpdateCalories(c *gin.Context) {
+	entryID := c.Params.ByName("id")
+	docID, _ := primitive.ObjectIDFFromHex(entryID)
 
-}
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+	typer Calories struct {
+		Calories int `json:"calories"`
+	}
+
+	var calories Calories
+
+	if err := c.BindJSON(&calories); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+
+	result, err := entryCollection.UpdateOne(ctx, bson.M{"_id": docID},
+		bson.D{{"$set", bson.D{{"calories", calories.Calories}}}},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+	defer cancel()
+	c.JSON(http.StatusOK, result.ModifiedCount)
+} 
 
 // Special
 func UpdateWeightGrams(c *gin.Context) {

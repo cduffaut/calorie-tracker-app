@@ -5,8 +5,8 @@ import (
 )
 
 type Entry struct {
-	ID              primitive.ObjectID `bson:"id"`
-	ProductName     *string            `json:"dish"`
-	CaloriesPer100g *float64
-	WeightGrams     *float64
+	ID          primitive.ObjectID `bson:"_id"`
+	ProductName string             `json:"product_name"`
+	Calories    float64            `json:"calories"`
+	WeightGrams float64            `json:"weight"`
 }

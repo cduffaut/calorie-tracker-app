@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,6 +15,7 @@ import (
 	"github.com/cduffaut/calorie-tracker-app/models"
 )
 
+var validate = validator.New()
 var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
 func AddEntry(c *gin.Context) {
@@ -68,7 +70,11 @@ func GetEntries(c *gin.Context) {
 
 func GetEntryById(c *gin.Context) {
 	EntryID := c.Params.ByName("id")
-	docID, _ := primitive.ObjectIDFromHex(EntryID)
+	docID, err := primitive.ObjectIDFromHex(EntryID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
@@ -86,7 +92,11 @@ func GetEntryById(c *gin.Context) {
 
 func UpdateEntry(c *gin.Context) {
 	entryID := c.Params.ByName("id")
-	docID, _ := primitive.ObjectIDFromHex(entryID)
+	docID, err := primitive.ObjectIDFromHex(entryID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 	var entry models.Entry
@@ -99,7 +109,7 @@ func UpdateEntry(c *gin.Context) {
 
 	validationErr := validate.Struct(entry)
 	if validationErr != nil {
-		c.JSON(http.StatusInternalServerError, gim.H{"error": validationErr.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": validationErr.Error()})
 		fmt.Println(validationErr)
 		return
 	}
@@ -108,9 +118,9 @@ func UpdateEntry(c *gin.Context) {
 		ctx,
 		bson.M{"_id": docID},
 		bson.M{
-			"product_name":      entry.ProductName,
-			"calories_per_100g": entry.CaloriesPer100g,
-			"weight_grams":      entry.WeightGrams,
+			"product_name": entry.ProductName,
+			"calories":     entry.Calories,
+			"weight_grams": entry.WeightGrams,
 		},
 	)
 	if err != nil {
@@ -122,10 +132,13 @@ func UpdateEntry(c *gin.Context) {
 	c.JSON(http.StatusOK, result.ModifiedCount)
 }
 
-// Special
 func UpdateCalories(c *gin.Context) {
 	entryID := c.Params.ByName("id")
-	docID, _ := primitive.ObjectIDFromHex(entryID)
+	docID, err := primitive.ObjectIDFromHex(entryID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
@@ -153,10 +166,13 @@ func UpdateCalories(c *gin.Context) {
 	c.JSON(http.StatusOK, result.ModifiedCount)
 }
 
-// Special
 func UpdateWeightGrams(c *gin.Context) {
 	entryID := c.Params.ByName("id")
-	docID, _ := primitive.ObjectIDFromHex(entryID)
+	docID, err := primitive.ObjectIDFromHex(entryID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
@@ -187,7 +203,11 @@ func UpdateWeightGrams(c *gin.Context) {
 
 func DeleteEntry(c *gin.Context) {
 	entryId := c.Params.ByName("id")
-	docId, _ := primitive.ObjectIDFromHex(entryId)
+	docId, err := primitive.ObjectIDFromHex(entryId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 

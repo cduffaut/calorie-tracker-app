@@ -5,6 +5,7 @@ import (
 
 	"github.com/cduffaut/calorie-tracker-app/routes"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +25,8 @@ func main() {
 	router.GET("/entry/:id", routes.GetEntryById)
 
 	router.PUT("/entry/update/:id", routes.UpdateEntry)
-	router.PUT("/calorie/upadte/:id", routes.UpdateCalories)
-	router.PUT("/weight/upadte/:id", routes.UpdateWeightGrams)
+	router.PUT("/calorie/update/:id", routes.UpdateCalories)
+	router.PUT("/weight/update/:id", routes.UpdateWeightGrams)
 	router.DELETE("/entry/delete/:id", routes.DeleteEntry)
 
 	router.Run(":" + port)

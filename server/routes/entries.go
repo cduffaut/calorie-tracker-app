@@ -1,12 +1,20 @@
 package routes
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/cduffaut/calorie-tracker-app/models"
 )
 
-var entryCollection *mongo.Collection = openCollection(Client, "calories")
+var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
 func AddEntry(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
@@ -15,7 +23,7 @@ func AddEntry(c *gin.Context) {
 	if err := c.BindJSON(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		fmt.Println(err)
-		return 
+		return
 	}
 	validationErr := validate.Struct(entry)
 	if validationErr != nil {
@@ -24,12 +32,12 @@ func AddEntry(c *gin.Context) {
 		return
 	}
 	entry.ID = primitive.NewObjectID()
-	result, insertErr := entryCollection.InsertOne(ctx, entry )
+	result, insertErr := entryCollection.InsertOne(ctx, entry)
 	if insertErr != nil {
 		msg := fmt.Sprintf("order item was not created.")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		fmt.Println(insertErr)
-		return 	
+		return
 	}
 	defer cancel()
 	c.JSON(http.StatusOK, result)
@@ -42,13 +50,13 @@ func GetEntries(c *gin.Context) {
 	cursor, err := entryCollection.Find(ctx, bson.M{})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServer, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		fmt.Println(err)
 		return
 	}
 
 	if err = cursor.All(ctx, &entries); err != nil {
-		c.JSON(http.StatusInternalServer, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		fmt.Println(err)
 		return
 	}
@@ -65,7 +73,7 @@ func GetEntryById(c *gin.Context) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 	var entry bson.M
-	if err := entryCollection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry): err != nil {
+	if err := entryCollection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		fmt.Println(err)
 		return
@@ -90,7 +98,7 @@ func UpdateEntry(c *gin.Context) {
 	}
 
 	validationErr := validate.Struct(entry)
-	validationErr != nil {
+	if validationErr != nil {
 		c.JSON(http.StatusInternalServerError, gim.H{"error": validationErr.Error()})
 		fmt.Println(validationErr)
 		return
@@ -100,9 +108,9 @@ func UpdateEntry(c *gin.Context) {
 		ctx,
 		bson.M{"_id": docID},
 		bson.M{
-			"product_name": entry.ProductName,
+			"product_name":      entry.ProductName,
 			"calories_per_100g": entry.CaloriesPer100g,
-			"weight_grams": entry.WeightGrams,
+			"weight_grams":      entry.WeightGrams,
 		},
 	)
 	if err != nil {
@@ -117,12 +125,12 @@ func UpdateEntry(c *gin.Context) {
 // Special
 func UpdateCalories(c *gin.Context) {
 	entryID := c.Params.ByName("id")
-	docID, _ := primitive.ObjectIDFFromHex(entryID)
+	docID, _ := primitive.ObjectIDFromHex(entryID)
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-	typer Calories struct {
-		Calories int `json:"calories"`
+	type Calories struct {
+		Calories float32 `json:"calories"`
 	}
 
 	var calories Calories
@@ -143,11 +151,38 @@ func UpdateCalories(c *gin.Context) {
 	}
 	defer cancel()
 	c.JSON(http.StatusOK, result.ModifiedCount)
-} 
+}
 
 // Special
 func UpdateWeightGrams(c *gin.Context) {
+	entryID := c.Params.ByName("id")
+	docID, _ := primitive.ObjectIDFromHex(entryID)
 
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+	type Weight struct {
+		Weight float32 `json:"weight"`
+	}
+
+	var weight Weight
+
+	if err := c.BindJSON(&weight); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+
+	result, err := entryCollection.UpdateOne(ctx, bson.M{"_id": docID},
+		bson.D{{"$set", bson.D{{"weight", weight.Weight}}}},
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+	defer cancel()
+	c.JSON(http.StatusOK, result.ModifiedCount)
 }
 
 func DeleteEntry(c *gin.Context) {
@@ -156,12 +191,12 @@ func DeleteEntry(c *gin.Context) {
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-	result, err := entryCollection.DeleteOne(ctx, bson.M{"_id"}: docId)
+	result, err := entryCollection.DeleteOne(ctx, bson.M{"_id": docId})
 
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		fmt.Println(err)
-		return 
+		return
 	}
 
 	defer cancel()

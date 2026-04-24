@@ -1,5 +1,6 @@
 import React from 'react'
-import 'bootstrap/distcss/bootstrap.css'
+import 'bootstrap/dist/css/bootstrap.css'
+
 
 import Entries from './components/entries.components'
 

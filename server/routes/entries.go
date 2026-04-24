@@ -20,6 +20,7 @@ var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
 func AddEntry(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
 	var entry models.Entry
 
 	if err := c.BindJSON(&entry); err != nil {
@@ -41,7 +42,6 @@ func AddEntry(c *gin.Context) {
 		fmt.Println(insertErr)
 		return
 	}
-	defer cancel()
 	c.JSON(http.StatusOK, result)
 }
 
@@ -189,7 +189,7 @@ func UpdateWeightGrams(c *gin.Context) {
 	}
 
 	result, err := entryCollection.UpdateOne(ctx, bson.M{"_id": docID},
-		bson.D{{"$set", bson.D{{"weight", weight.Weight}}}},
+		bson.D{{"$set", bson.D{{"weight_grams", weight.Weight}}}},
 	)
 
 	if err != nil {

@@ -34,3 +34,5 @@ const Entry = ({ entryData, setChangeWeight, deleteEntry, setChangeCalories }) =
 		)
 	}
 };
+
+export default Entry;
